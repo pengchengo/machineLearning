@@ -41,3 +41,5 @@ cv2.putText(img, label, (10, 20),
 cv2.imshow('img', img)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+
+#https://github.com/ageitgey/face_recognition/blob/master/README_Simplified_Chinese.md
