@@ -38,6 +38,10 @@ X_test = np.matrix(X_test.values)
 y_test = np.matrix(y_test.values)
 # 初始化theta矩阵
 theta = np.matrix([0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+
+print(theta.shape)
+print(y_train.shape)
+
 X_train.shape,X_test.shape,y_train.shape,y_test.shape
 
 #添加偏置列，值为1，axis = 1 添加列 
@@ -58,9 +62,13 @@ def regularizedcost(X,y,theta,l):
 # 梯度下降
 def GradientDescent(X,y,theta,l,alpha,epoch):
     temp = np.matrix(np.zeros(np.shape(theta)))   # 定义临时矩阵存储theta
+    #print(temp)
     parameters = int(theta.flatten().shape[1])    # 参数 θ的数量
     cost = np.zeros(epoch)  # 初始化一个ndarray，包含每次epoch的cost
     m = X.shape[0]  # 样本数量m
+    n = X.shape[1]
+    print(m)
+    print(n)
     for i in range(epoch):
         # 利用向量化一步求解
         temp = theta - (alpha / m) * (X * theta.T - y).T * X - (alpha*l/m)*theta     # 添加了正则项
@@ -74,4 +82,5 @@ l = 50      #正则化参数
 
 #运行梯度下降算法 并得出最终拟合的theta值 代价函数J(theta)
 final_theta, cost = GradientDescent(X_train, y_train, theta, l, alpha, epoch)
-print(final_theta)
+#print(final_theta)
+#print(cost)
