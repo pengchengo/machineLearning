@@ -1,45 +1,50 @@
 # encoding:utf-8
+
+import face_recognition 
 import cv2
-import numpy as np
+import os
 
-#https://blog.csdn.net/qq_32892383/article/details/90732916
+#存储知道人名列表
+known_names=[] 
+#存储知道的特征值
+known_encodings=[]
 
-# 运行之前，检查cascade文件路径是否在相应的目录下
-face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
+def readPersons(path):
+    for image_name in os.listdir(path):
+        load_image = face_recognition.load_image_file(path+image_name) #加载图片
+        image_face_encoding = face_recognition.face_encodings(load_image)[0] #获得128维特征值
+        known_names.append(image_name.split(".")[0].split("_")[0])
+        known_encodings.append(image_face_encoding)
+    #print(known_names)
 
-# 读取图像
-img = cv2.imread('zhou.jpg')
-gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # 转为灰度图
+def face(namePath):
+    rgb_frame = face_recognition.load_image_file(namePath)
+    face_locations = face_recognition.face_locations(rgb_frame)#获得所有人脸位置
+    face_encodings = face_recognition.face_encodings(rgb_frame, face_locations) #获得人脸特征值
+    face_names = [] #存储出现在画面中人脸的名字
+    for face_encoding in face_encodings:         
+        matches = face_recognition.compare_faces(known_encodings, face_encoding,tolerance=0.5)
+        if True in matches:
+            first_match_index = matches.index(True)
+            name = known_names[first_match_index]
+        else:
+            name="unknown"
+        face_names.append(name)
 
+    img = cv2.imread(namePath)
+    print(face_names)
+    # 将捕捉到的人脸显示出来
+    for (top, right, bottom, left), name in zip(face_locations, face_names):
+        cv2.rectangle(img, (left, top), (right, bottom), (0, 0, 255), 1) # 画人脸矩形框
+        # 加上人名标签
+        #cv2.rectangle(img, (left, bottom - 35), (right, bottom), (0, 0, 255), 1)
+        font = cv2.FONT_HERSHEY_DUPLEX 
+        print(name)
+        cv2.putText(img, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+    
+    cv2.imshow('frame', img)
+    cv2.waitKey(0)
 
-# 检测脸部
-faces = face_cascade.detectMultiScale(gray,
-                            scaleFactor=1.1,
-                            minNeighbors=5,
-                            minSize=(30, 30),
-                            flags=cv2.CASCADE_SCALE_IMAGE)
-print('Detected ', len(faces), " face")
-
-
-# 标记位置
-for (x, y, w, h) in faces:
-    img = cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 1)
-    # cv2.circle(img, (int((x + x + w) / 2), int((y + y + h) / 2)), int(w / 2), (0, 255, 0), 1)
-    roi_gray = gray[y: y + h, x: x + w]
-    roi_color = img[y: y + h, x: x + w]
-
-    eyes = eye_cascade.detectMultiScale(roi_gray)
-    for (ex, ey, ew, eh) in eyes:
-        cv2.rectangle(roi_color, (ex, ey), (ex + ew, ey + eh), (0, 255, 0), 1)
-
-
-label = 'Result: Detected ' + str(len(faces)) +" faces !"
-cv2.putText(img, label, (10, 20),
-                        cv2.FONT_HERSHEY_SCRIPT_COMPLEX, 
-                        0.8, (0, 0, 0), 1)
-cv2.imshow('img', img)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
-
-#https://github.com/ageitgey/face_recognition/blob/master/README_Simplified_Chinese.md
+if __name__=='__main__':
+    readPersons("./persons/") #存放已知图像路径
+    face("./find/ping3.jpg")
