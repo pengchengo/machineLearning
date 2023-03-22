@@ -3,18 +3,19 @@ import face_recognition
 import cv2
 import os
 
-def face(path):
-    #存储知道人名列表
-    known_names=[] 
-    #存储知道的特征值
-    known_encodings=[]
+#存储知道人名列表
+known_names=[] 
+#存储知道的特征值
+known_encodings=[]
+
+def readPersons(path):
     for image_name in os.listdir(path):
         load_image = face_recognition.load_image_file(path+image_name) #加载图片
         image_face_encoding = face_recognition.face_encodings(load_image)[0] #获得128维特征值
-        known_names.append(image_name.split(".")[0])
+        known_names.append(image_name.split(".")[0].split("_")[0])
         known_encodings.append(image_face_encoding)
-    print(known_encodings)
-    
+
+def face(path):
     #打开摄像头，0表示内置摄像头
     video_capture = cv2.VideoCapture(0) 
     process_this_frame = True
@@ -53,4 +54,5 @@ def face(path):
     cv2.destroyAllWindows()
 
 if __name__=='__main__':
-    face("./images/") #存放已知图像路径
+    readPersons("./persons/") #存放已知图像路径
+    face("./find/ping3.jpg")
