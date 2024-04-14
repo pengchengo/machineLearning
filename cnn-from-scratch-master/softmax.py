@@ -57,6 +57,9 @@ class Softmax:
       # Gradients of loss against totals
       d_L_d_t = gradient * d_out_d_t
 
+      new1 = d_t_d_w[np.newaxis]
+      new1T = d_t_d_w[np.newaxis].T
+      new2 = d_L_d_t[np.newaxis]
       # Gradients of loss against weights/biases/input
       d_L_d_w = d_t_d_w[np.newaxis].T @ d_L_d_t[np.newaxis]
       d_L_d_b = d_L_d_t * d_t_d_b
