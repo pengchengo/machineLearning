@@ -52,10 +52,11 @@ class Conv3x3:
     - learn_rate is a float.
     '''
     d_L_d_filters = np.zeros(self.filters.shape)
-
+    input_filters = np.zeros(self.last_input.shape)
     for im_region, i, j in self.iterate_regions(self.last_input):
       for f in range(self.num_filters):
         d_L_d_filters[f] += d_L_d_out[i, j, f] * im_region
+        input_filters[i:i+3, j:j+3] += self.filters[f] * d_L_d_out[i, j, f]
 
     # Update filters
     self.filters -= learn_rate * d_L_d_filters
@@ -63,4 +64,4 @@ class Conv3x3:
     # We aren't returning anything here since we use Conv3x3 as the first layer in our CNN.
     # Otherwise, we'd need to return the loss gradient for this layer's inputs, just like every
     # other layer in our CNN.
-    return None
+    return input_filters
