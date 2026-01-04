@@ -6,6 +6,7 @@ MTCNN训练脚本
 import os
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 from mtcnn_model import get_model
@@ -25,6 +26,17 @@ class MTCNNLoss(nn.Module):
     
     def forward(self, cls_pred, cls_target, bbox_pred, bbox_target, 
                 landmark_pred=None, landmark_target=None):
+        # 处理P-Net的空间输出 (batch, 2, h, w) -> (batch, 2)
+        if len(cls_pred.shape) == 4:  # P-Net输出有空间维度
+            # 方法1: 使用全局平均池化
+            cls_pred = F.adaptive_avg_pool2d(cls_pred, (1, 1))
+            cls_pred = cls_pred.squeeze(-1).squeeze(-1)  # (batch, 2, 1, 1) -> (batch, 2)
+            
+            # 同样处理bbox_pred
+            if len(bbox_pred.shape) == 4:
+                bbox_pred = F.adaptive_avg_pool2d(bbox_pred, (1, 1))
+                bbox_pred = bbox_pred.squeeze(-1).squeeze(-1)  # (batch, 4, 1, 1) -> (batch, 4)
+        
         # 分类损失
         cls_loss = self.cls_loss(cls_pred, cls_target)
         
