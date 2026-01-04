@@ -1,2 +1,5 @@
 cnn-from-scratch-master/__pycache__
 .idea
+mtcnn/wider_face_split
+mtcnn/wider_train
+mtcnn/__pycache__

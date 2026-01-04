@@ -171,7 +171,12 @@ def main():
                        choices=['pnet', 'rnet', 'onet'],
                        help='训练的网络类型')
     parser.add_argument('--data_dir', type=str, default='./data',
-                       help='数据目录')
+                       help='数据根目录')
+    parser.add_argument('--wider_train_dir', type=str, default='wider_train',
+                       help='WIDER_train图片文件夹路径（相对于data_dir或绝对路径）')
+    parser.add_argument('--wider_annotation_file', type=str, 
+                       default='wider_face_split/wider_face_train_bbx_gt.txt',
+                       help='WIDER FACE标注文件路径（相对于data_dir或绝对路径）')
     parser.add_argument('--batch_size', type=int, default=32,
                        help='批次大小')
     parser.add_argument('--epochs', type=int, default=20,
@@ -220,7 +225,9 @@ def main():
         img_size=img_size, 
         mode=args.mode,
         batch_size=args.batch_size,
-        shuffle=True
+        shuffle=True,
+        wider_train_dir=args.wider_train_dir,
+        wider_annotation_file=args.wider_annotation_file
     )
     
     # TensorBoard
