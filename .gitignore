@@ -3,3 +3,7 @@ cnn-from-scratch-master/__pycache__
 mtcnn/wider_face_split
 mtcnn/wider_train
 mtcnn/__pycache__
+mtcnn/runs/onet_train
+mtcnn/runs/rnet_train
+mtcnn/runs/pnet_train
+mtcnn/checkpoints

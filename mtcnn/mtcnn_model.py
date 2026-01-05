@@ -58,7 +58,9 @@ class RNet(nn.Module):
         self.conv3 = nn.Conv2d(48, 64, kernel_size=2, stride=1)
         self.prelu3 = nn.PReLU(64)
         
-        self.fc1 = nn.Linear(64 * 3 * 3, 128)
+        # 计算特征图尺寸: 24 -> conv1(22) -> pool1(10) -> conv2(8) -> pool2(3) -> conv3(2)
+        # 最终: 64 * 2 * 2 = 256
+        self.fc1 = nn.Linear(64 * 2 * 2, 128)
         self.prelu4 = nn.PReLU(128)
         
         # 分类分支
@@ -100,7 +102,9 @@ class ONet(nn.Module):
         self.conv4 = nn.Conv2d(64, 128, kernel_size=2, stride=1)
         self.prelu4 = nn.PReLU(128)
         
-        self.fc1 = nn.Linear(128 * 3 * 3, 256)
+        # 计算特征图尺寸: 48 -> conv1(46) -> pool1(22) -> conv2(20) -> pool2(9) -> conv3(7) -> pool3(3) -> conv4(2)
+        # 最终: 128 * 2 * 2 = 512
+        self.fc1 = nn.Linear(128 * 2 * 2, 256)
         self.prelu5 = nn.PReLU(256)
         
         # 分类分支

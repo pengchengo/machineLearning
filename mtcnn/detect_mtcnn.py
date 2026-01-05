@@ -340,3 +340,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+#python detect_mtcnn.py --image ./pengcheng_5.jpg --pnet checkpoints/pnet_best.pth --rnet checkpoints/rnet_best.pth --onet checkpoints/onet_best.pth --output result.jpg --device cuda
