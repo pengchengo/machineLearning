@@ -7,3 +7,6 @@ mtcnn/runs/onet_train
 mtcnn/runs/rnet_train
 mtcnn/runs/pnet_train
 mtcnn/checkpoints
+agent/__pycache__
+ppo/__pycache__
+ppo/checkpoints

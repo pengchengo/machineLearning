@@ -58,7 +58,7 @@ class MTCNNDetector:
         else:
             self.onet = None
     
-    def detect_pnet(self, img, min_face_size=20, scale_factor=0.709, threshold=0.6):
+    def detect_pnet(self, img, min_face_size=20, scale_factor=0.709, threshold=0.7):
         """P-Net检测"""
         if self.pnet is None:
             return []
@@ -88,6 +88,20 @@ class MTCNNDetector:
             cls_pred = cls_pred[0, 1, :, :].cpu().numpy()
             bbox_pred = bbox_pred[0].cpu().numpy()
             
+            # 计算特征图尺寸
+            feat_h, feat_w = cls_pred.shape
+            
+            # P-Net的stride计算
+            # conv1(3x3, no padding) -> pool1(2x2, stride=2) -> conv2(3x3) -> conv3(3x3)
+            # 总stride = 2 (来自pool1)
+            stride = 2
+            cell_size = 12  # P-Net的输入patch大小
+            
+            # 计算特征图到输入图像的映射
+            # 每个特征图位置对应输入图像中的一个12x12区域
+            # 特征图位置(i,j)对应输入图像中中心位置约为 (j*stride+stride/2, i*stride+stride/2)
+            # 但需要考虑实际的网络结构，这里使用简化的映射
+            
             # 找到置信度高的位置
             indices = np.where(cls_pred > threshold)
             if len(indices[0]) == 0:
@@ -97,23 +111,55 @@ class MTCNNDetector:
                 score = cls_pred[i, j]
                 offset = bbox_pred[:, i, j]
                 
-                # 计算原始坐标
-                x1 = int((j * 2) / scale)
-                y1 = int((i * 2) / scale)
-                x2 = int((j * 2 + 12) / scale)
-                y2 = int((i * 2 + 12) / scale)
+                # 计算特征图位置对应的输入图像坐标
+                # 特征图位置(i,j)对应输入图像中的位置
+                # 使用stride=2的映射
+                x_in_input = (j * stride + stride / 2.0)
+                y_in_input = (i * stride + stride / 2.0)
                 
-                # 应用偏移
-                x1 = int(x1 + offset[0] * 12 / scale)
-                y1 = int(y1 + offset[1] * 12 / scale)
-                x2 = int(x2 + offset[2] * 12 / scale)
-                y2 = int(y2 + offset[3] * 12 / scale)
+                # 初始边界框（以特征图位置为中心，大小为cell_size）
+                x1_in_input = x_in_input - cell_size / 2.0
+                y1_in_input = y_in_input - cell_size / 2.0
+                x2_in_input = x_in_input + cell_size / 2.0
+                y2_in_input = y_in_input + cell_size / 2.0
                 
-                boxes.append([x1, y1, x2, y2, score])
+                # 映射回原始图像坐标
+                x1 = int(x1_in_input / scale)
+                y1 = int(y1_in_input / scale)
+                x2 = int(x2_in_input / scale)
+                y2 = int(y2_in_input / scale)
+                
+                # 应用偏移（offset是归一化的，相对于12x12的crop区域）
+                # 训练时：offset = (orig_box - crop_box) / crop_size
+                # 检测时：orig_box = crop_box + offset * crop_size
+                box_w = x2 - x1
+                box_h = y2 - y1
+                if box_w > 0 and box_h > 0:
+                    # offset[0], offset[1]是左上角的归一化偏移
+                    # offset[2], offset[3]是右下角的归一化偏移
+                    x1_new = x1 + offset[0] * box_w
+                    y1_new = y1 + offset[1] * box_h
+                    x2_new = x1 + offset[2] * box_w
+                    y2_new = y1 + offset[3] * box_h
+                    
+                    x1 = int(x1_new)
+                    y1 = int(y1_new)
+                    x2 = int(x2_new)
+                    y2 = int(y2_new)
+                
+                # 确保坐标在图像范围内
+                x1 = max(0, min(x1, w))
+                y1 = max(0, min(y1, h))
+                x2 = max(0, min(x2, w))
+                y2 = max(0, min(y2, h))
+                
+                # 只保留有效的边界框（最小尺寸过滤）
+                if x2 > x1 and y2 > y1 and (x2 - x1) > 10 and (y2 - y1) > 10:
+                    boxes.append([x1, y1, x2, y2, score])
         
-        return self.nms(boxes, 0.5)
+        return self.nms(boxes, 0.4)  # 降低NMS阈值，更严格地过滤重叠框
     
-    def detect_rnet(self, img, boxes):
+    def detect_rnet(self, img, boxes, threshold=0.8):
         """R-Net精炼"""
         if self.rnet is None or len(boxes) == 0:
             return boxes
@@ -142,7 +188,7 @@ class MTCNNDetector:
                 cls_pred, bbox_pred = self.rnet(crop_tensor)
             
             score = cls_pred[0, 1].item()
-            if score > 0.7:
+            if score > threshold:
                 offset = bbox_pred[0].cpu().numpy()
                 x1 = int(x1 + offset[0] * w)
                 y1 = int(y1 + offset[1] * h)
@@ -150,12 +196,12 @@ class MTCNNDetector:
                 y2 = int(y2 + offset[3] * h)
                 refined_boxes.append([x1, y1, x2, y2, score])
         
-        return self.nms(refined_boxes, 0.5)
+        return self.nms(refined_boxes, 0.4)
     
-    def detect_onet(self, img, boxes):
+    def detect_onet(self, img, boxes, threshold=0.9):
         """O-Net最终输出"""
         if self.onet is None or len(boxes) == 0:
-            return boxes
+            return boxes, []
         
         final_boxes = []
         landmarks_list = []
@@ -183,7 +229,7 @@ class MTCNNDetector:
                 cls_pred, bbox_pred, landmarks_pred = self.onet(crop_tensor)
             
             score = cls_pred[0, 1].item()
-            if score > 0.8:
+            if score > threshold:
                 offset = bbox_pred[0].cpu().numpy()
                 landmarks = landmarks_pred[0].cpu().numpy()
                 
@@ -237,25 +283,47 @@ class MTCNNDetector:
         
         return boxes[keep].tolist()
     
-    def detect(self, img):
-        """完整检测流程"""
+    def detect(self, img, pnet_threshold=0.7, rnet_threshold=0.8, onet_threshold=0.9, nms_threshold=0.4):
+        """
+        完整检测流程
+        
+        Args:
+            img: 输入图像（路径或numpy数组）
+            pnet_threshold: P-Net置信度阈值（默认0.7，越高越严格）
+            rnet_threshold: R-Net置信度阈值（默认0.8）
+            onet_threshold: O-Net置信度阈值（默认0.9）
+            nms_threshold: NMS IoU阈值（默认0.4，越低越严格）
+        """
         if isinstance(img, str):
             img = cv2.imread(img)
             if img is None:
                 raise ValueError(f"无法读取图像: {img}")
         
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img_h, img_w = img_rgb.shape[:2]
+        print(f"图像尺寸: {img_w}x{img_h}")
         
         # P-Net
-        boxes = self.detect_pnet(img_rgb)
+        boxes = self.detect_pnet(img_rgb, threshold=pnet_threshold)
+        print(f"P-Net检测结果: {len(boxes)} 个候选框")
+        if len(boxes) > 0:
+            scores = [b[4] for b in boxes]
+            print(f"  P-Net置信度范围: {min(scores):.3f} - {max(scores):.3f}")
+            # 打印前5个候选框的详细信息
+            for idx, box in enumerate(boxes[:5]):
+                print(f"  候选框{idx+1}: ({box[0]}, {box[1]}) -> ({box[2]}, {box[3]}), 置信度: {box[4]:.3f}, 尺寸: {box[2]-box[0]}x{box[3]-box[1]}")
+        else:
+            print("  ⚠️  P-Net未检测到任何候选框，可能阈值过高或模型未训练好")
         
         # R-Net
-        if self.rnet is not None:
-            boxes = self.detect_rnet(img_rgb, boxes)
+        if self.rnet is not None and len(boxes) > 0:
+            boxes = self.detect_rnet(img_rgb, boxes, threshold=rnet_threshold)
+            print(f"R-Net检测结果: {len(boxes)} 个候选框")
         
         # O-Net
-        if self.onet is not None:
-            boxes, landmarks = self.detect_onet(img_rgb, boxes)
+        if self.onet is not None and len(boxes) > 0:
+            boxes, landmarks = self.detect_onet(img_rgb, boxes, threshold=onet_threshold)
+            print(f"O-Net检测结果: {len(boxes)} 个人脸")
             return boxes, landmarks
         
         return boxes, []
@@ -300,6 +368,14 @@ def main():
     parser.add_argument('--device', type=str, default='cuda',
                        choices=['cuda', 'cpu'],
                        help='使用设备')
+    parser.add_argument('--pnet_threshold', type=float, default=0.7,
+                       help='P-Net置信度阈值（默认0.7，越高越严格，减少误检）')
+    parser.add_argument('--rnet_threshold', type=float, default=0.8,
+                       help='R-Net置信度阈值（默认0.8）')
+    parser.add_argument('--onet_threshold', type=float, default=0.9,
+                       help='O-Net置信度阈值（默认0.9）')
+    parser.add_argument('--nms_threshold', type=float, default=0.4,
+                       help='NMS IoU阈值（默认0.4，越低越严格，减少重复检测）')
     
     args = parser.parse_args()
     
@@ -319,8 +395,15 @@ def main():
     
     # 检测
     print("开始检测...")
+    print(f"检测阈值设置: P-Net={args.pnet_threshold}, R-Net={args.rnet_threshold}, O-Net={args.onet_threshold}, NMS={args.nms_threshold}")
     start_time = time.time()
-    boxes, landmarks = detector.detect(img)
+    boxes, landmarks = detector.detect(
+        img, 
+        pnet_threshold=args.pnet_threshold,
+        rnet_threshold=args.rnet_threshold,
+        onet_threshold=args.onet_threshold,
+        nms_threshold=args.nms_threshold
+    )
     elapsed_time = time.time() - start_time
     
     print(f"检测到 {len(boxes)} 个人脸，耗时: {elapsed_time:.3f}秒")
@@ -340,4 +423,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-#python detect_mtcnn.py --image ./pengcheng_5.jpg --pnet checkpoints/pnet_best.pth --rnet checkpoints/rnet_best.pth --onet checkpoints/onet_best.pth --output result.jpg --device cuda
+#python detect_mtcnn.py --image ./pengcheng_5.jpg --pnet checkpoints/pnet_best.pth --rnet checkpoints/rnet_best.pth --onet checkpoints/onet_best.pth --output result.jpg --device cuda --pnet_threshold 0.7 --rnet_threshold 0.8 --onet_threshold 0.9 --nms_threshold 0.3 
