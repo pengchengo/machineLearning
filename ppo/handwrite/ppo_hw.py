@@ -6,11 +6,6 @@ import gymnasium as gym
 import torch.optim as optim
 from pathlib import Path
 
-# 保证从项目根可导入 ppo
-_root = Path(__file__).resolve().parent.parent
-if str(_root) not in sys.path:
-    sys.path.insert(0, str(_root))
-
 class ActorCritic(nn.Module):
     def __init__(self, state_dim, action_dim, hidden_dim=64):
         super(ActorCritic, self).__init__()
@@ -44,7 +39,7 @@ class ActorCritic(nn.Module):
         dist = torch.distributions.Categorical(action_probs)
         log_probs = dist.log_prob(actions)
         entropy = dist.entropy()
-        values = self.critic(states).squeeze(-1)
+        values = self.critic(states)
         return log_probs, entropy, values
         
 class PPO:
@@ -64,6 +59,7 @@ class PPO:
         for t in reversed(range(len(rewards))):
             running_return = rewards[t] + self.gamma * running_return * (1 - dones[t])
             returns.insert(0, running_return)
+        returns = torch.tensor(returns, dtype=torch.float32)
         advantages = torch.tensor(returns, dtype=torch.float32) - values.detach()
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
         return advantages, returns
@@ -142,7 +138,10 @@ def train():
         ppo.update(states, actions, log_probs, values, rewards, dones)
         print(f"Episode {episode} finished! Total reward: {total_reward}")
 
-    save_path = Path("ppo/handwrite/ppo_hw.pt")
+    # 使用脚本所在目录，避免从不同工作目录运行导致保存路径不存在
+    save_dir = Path(__file__).resolve().parent
+    save_dir.mkdir(parents=True, exist_ok=True)
+    save_path = save_dir / "ppo_hw.pt"
     torch.save({"policy": ppo.actor_critic.state_dict(), "optimizer": ppo.optimizer.state_dict()}, save_path)
 
 def play_ppo():
@@ -150,7 +149,8 @@ def play_ppo():
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
     ppo = PPO(state_dim, action_dim)
-    ppo.actor_critic.load_state_dict(torch.load("ppo/handwrite/ppo_hw.pt")["policy"])
+    ckpt_path = Path(__file__).resolve().parent / "ppo_hw.pt"
+    ppo.actor_critic.load_state_dict(torch.load(ckpt_path, map_location="cpu")["policy"])
     state, _ = env.reset()
     episode_over = False
     total_reward = 0
@@ -161,3 +161,5 @@ def play_ppo():
         episode_over = terminated or truncated
         state = next_state
     print(f"Total reward: {total_reward}")
+
+play_ppo()
