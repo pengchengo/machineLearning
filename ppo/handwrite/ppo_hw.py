@@ -65,6 +65,7 @@ class PPO:
             running_return = rewards[t] + self.gamma * running_return * (1 - dones[t])
             returns.insert(0, running_return)
         advantages = torch.tensor(returns, dtype=torch.float32) - values.detach()
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
         return advantages, returns
 
     def update(self, states, actions, log_probs, values, rewards, dones):
@@ -141,3 +142,22 @@ def train():
         ppo.update(states, actions, log_probs, values, rewards, dones)
         print(f"Episode {episode} finished! Total reward: {total_reward}")
 
+    save_path = Path("ppo/handwrite/ppo_hw.pt")
+    torch.save({"policy": ppo.actor_critic.state_dict(), "optimizer": ppo.optimizer.state_dict()}, save_path)
+
+def play_ppo():
+    env = gym.make("CartPole-v1", render_mode="human")
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.n
+    ppo = PPO(state_dim, action_dim)
+    ppo.actor_critic.load_state_dict(torch.load("ppo/handwrite/ppo_hw.pt")["policy"])
+    state, _ = env.reset()
+    episode_over = False
+    total_reward = 0
+    while not episode_over:
+        action, log_prob, value = ppo.actor_critic.get_action(state)
+        next_state, reward, terminated, truncated, info = env.step(action)
+        total_reward += reward
+        episode_over = terminated or truncated
+        state = next_state
+    print(f"Total reward: {total_reward}")
