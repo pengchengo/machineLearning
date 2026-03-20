@@ -1,8 +1,15 @@
 from re import L
 import torch
+import sys
 import torch.nn as nn
 import gymnasium as gym
 import torch.optim as optim
+from pathlib import Path
+
+# 保证从项目根可导入 ppo
+_root = Path(__file__).resolve().parent.parent
+if str(_root) not in sys.path:
+    sys.path.insert(0, str(_root))
 
 class ActorCritic(nn.Module):
     def __init__(self, state_dim, action_dim, hidden_dim=64):
@@ -33,11 +40,11 @@ class ActorCritic(nn.Module):
         return action.item(), log_prob, value
 
     def evaluate(self, states, actions):
-        states = torch.tensor(states, dtype=torch.float32)
-        actions = torch.tensor(actions, dtype=torch.int64)
-        log_probs = self.log_probs(states, actions)
-        entropy = self.entropy(states)
-        values = self.values(states)
+        action_probs = self.actor(states)
+        dist = torch.distributions.Categorical(action_probs)
+        log_probs = dist.log_prob(actions)
+        entropy = dist.entropy()
+        values = self.critic(states).squeeze(-1)
         return log_probs, entropy, values
         
 class PPO:
