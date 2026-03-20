@@ -151,15 +151,19 @@ def play_ppo():
     ppo = PPO(state_dim, action_dim)
     ckpt_path = Path(__file__).resolve().parent / "ppo_hw.pt"
     ppo.actor_critic.load_state_dict(torch.load(ckpt_path, map_location="cpu")["policy"])
+    ppo.actor_critic.eval()
     state, _ = env.reset()
     episode_over = False
     total_reward = 0
     while not episode_over:
-        action, log_prob, value = ppo.actor_critic.get_action(state)
-        next_state, reward, terminated, truncated, info = env.step(action)
-        total_reward += reward
-        episode_over = terminated or truncated
-        state = next_state
+        with torch.no_grad():
+            action, log_prob, value = ppo.actor_critic.get_action(state)
+            next_state, reward, terminated, truncated, info = env.step(action)
+            total_reward += reward
+            episode_over = terminated or truncated
+            state = next_state
     print(f"Total reward: {total_reward}")
 
-play_ppo()
+if __name__ == "__main__":
+    #train()
+    play_ppo()
