@@ -2,7 +2,18 @@
 
 import torch
 import torch.nn as nn
+from learnTransformer.scripts.TokenEmbedding import TokenEmbedding
+from learnTransformer.scripts.PositionalEncoding import PositionalEncoding
+from learnTransformer.scripts.Config import dropout
 
-class Embedding(nn.Embedding):
+class Embedding(nn.Module):
     def __init__(self):
         super().__init__()
+        self.token_embedding = TokenEmbedding()
+        self.position_embedding = PositionalEncoding()
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        tok_emb = self.token_embedding(x)
+        pos_emb = self.position_embedding(x)
+        return self.dropout(tok_emb + pos_emb)
