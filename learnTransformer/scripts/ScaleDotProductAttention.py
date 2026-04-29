@@ -20,4 +20,4 @@ class ScaleDotProductAttention(nn.Module):
             score = score.masked_fill(mask == 0, -10000)
         score = self.softmax(score)
         output = score @ v
-        return v,score
+        return output,score

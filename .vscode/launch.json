@@ -8,6 +8,14 @@
             "cwd": "${workspaceFolder}\\ppo\\handwrite",
             "program": "${file}",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Python Debugger: train.py",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "${workspaceFolder}\\learnTransformer",
+            "program": "scripts/train.py",
+            "console": "integratedTerminal"
         }
     ]
 }
