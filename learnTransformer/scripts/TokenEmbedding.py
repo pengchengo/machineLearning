@@ -2,7 +2,7 @@
 
 import torch
 import torch.nn as nn
-from learnTransformer.scripts.Config import vocab_size, d_model, PAD_IDX
+from learnTransformer.scripts.Config import d_model, PAD_IDX
 
 class TokenEmbedding(nn.Embedding):
     def __init__(self):

@@ -2,7 +2,14 @@
 
 from tabnanny import verbose
 import time
+import sys
+from pathlib import Path
 
+# 允许直接运行本文件时仍可解析 `learnTransformer.*` 绝对导入
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+    
 import torch
 from learnTransformer.scripts.Transformer import Transformer
 from learnTransformer.scripts.Config import device, batch_size, total_epochs

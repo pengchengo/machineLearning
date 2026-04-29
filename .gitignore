@@ -10,3 +10,4 @@ mtcnn/checkpoints
 agent/__pycache__
 ppo/__pycache__
 ppo/checkpoints
+learnTransformer/scripts/__pycache__
