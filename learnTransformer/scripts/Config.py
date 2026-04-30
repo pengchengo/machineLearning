@@ -21,6 +21,8 @@ PAD_IDX = 0
 UNK_IDX = 1
 SOS_IDX = 2
 EOS_IDX = 3
+tgt_vocab_size = 0
+src_vocab_size = 0
 
 init_lr = 1e-5
 factor = 0.9

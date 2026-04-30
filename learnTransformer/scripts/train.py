@@ -9,8 +9,9 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-    
+
 import torch
+from learnTransformer.scripts import Config
 from learnTransformer.scripts.Transformer import Transformer
 from learnTransformer.scripts.Config import device, batch_size, total_epochs
 import torch.optim as optim
@@ -18,13 +19,15 @@ from learnTransformer.scripts.Config import init_lr, factor, adam_eps, patience,
 import torch.nn as nn
 from learnTransformer.scripts.DataLoader import get_dataloaders
 
+train_loader, val_loader, src_vocab, tgt_vocab = get_dataloaders(batch_size=batch_size)
+Config.src_vocab_size = len(src_vocab)
+Config.tgt_vocab_size = len(tgt_vocab)
+
 model = Transformer()
 model = model.to(device)
 optimizer = optim.Adam(model.parameters(), lr=init_lr, eps=adam_eps, weight_decay=weight_decay)
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True, factor=factor, patience=patience)
 criterion = nn.CrossEntropyLoss()
-
-train_loader, val_loader, src_vocab, tgt_vocab = get_dataloaders(batch_size=batch_size)
     
 
 def train():

@@ -7,9 +7,9 @@ from learnTransformer.scripts.PositionalEncoding import PositionalEncoding
 from learnTransformer.scripts.Config import dropout
 
 class Embedding(nn.Module):
-    def __init__(self):
+    def __init__(self, vocab_size):
         super().__init__()
-        self.token_embedding = TokenEmbedding()
+        self.token_embedding = TokenEmbedding(vocab_size)
         self.position_embedding = PositionalEncoding()
         self.dropout = nn.Dropout(dropout)
 
