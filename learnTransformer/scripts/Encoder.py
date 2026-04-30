@@ -2,7 +2,7 @@
 
 import torch
 import torch.nn as nn
-import learnTransformer.scripts.EncoderLayer as EncoderLayer
+from learnTransformer.scripts.EncoderLayer import EncoderLayer
 from learnTransformer.scripts.Embedding import Embedding
 from learnTransformer.scripts.Config import num_layers
 from learnTransformer.scripts import Config

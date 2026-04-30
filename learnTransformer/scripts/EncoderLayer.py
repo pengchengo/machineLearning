@@ -20,7 +20,7 @@ class EncoderLayer(nn.Module):
 
     def forward(self, x, mask):
         _x = x
-        x = self.attntion(x, x, x, mask)
+        x = self.attention(x, x, x, mask)
 
         x = self.dropout1(x)
         x = self.norm1(x + _x)

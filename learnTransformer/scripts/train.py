@@ -26,7 +26,7 @@ Config.tgt_vocab_size = len(tgt_vocab)
 model = Transformer()
 model = model.to(device)
 optimizer = optim.Adam(model.parameters(), lr=init_lr, eps=adam_eps, weight_decay=weight_decay)
-scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True, factor=factor, patience=patience)
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=factor, patience=patience)
 criterion = nn.CrossEntropyLoss()
     
 
@@ -35,9 +35,11 @@ def train():
     epoch_loss = 0.0
     for src, trg in train_loader:
         # src: [batch, src_len], tgt: [batch, tgt_len]，含 <sos>...<eos>
+        src = src.to(device)
+        trg = trg.to(device)
         optimizer.zero_grad()
         output = model(src, trg[:,:-1])
-        output_reshape = output.contiguous().view(-1, output.shape(-1))
+        output_reshape = output.contiguous().view(-1, output.shape[-1])
         trg = trg[:,1:].contiguous().view(-1)
 
         loss = criterion(output_reshape, trg)
@@ -54,8 +56,10 @@ def evaluate():
     epoch_loss = 0.0
     with torch.no_grad():
         for src, trg in val_loader:
+            src = src.to(device)
+            trg = trg.to(device)
             output = model(src, trg[:,:-1])
-            output_reshape = output.contiguous().view(-1, output.shape(-1))
+            output_reshape = output.contiguous().view(-1, output.shape[-1])
             trg = trg[:,1:].contiguous().view(-1)
             loss = criterion(output_reshape, trg)
             epoch_loss += loss.item()
