@@ -19,7 +19,7 @@ class DecoderLayer(nn.Module):
         self.dropout2 = nn.Dropout(dropout)
 
         self.ffn = PositionwiseFeedForward()
-        self.norm2 = LayerNorm()
+        self.norm3 = LayerNorm()
         self.dropout3 = nn.Dropout(dropout)
 
     def forward(self, x, encoder_output, src_mask, tgt_mask):

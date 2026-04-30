@@ -14,7 +14,7 @@ class PositionwiseFeedForward(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
 
-    def forward(self, Q, K, V):
+    def forward(self, x):
         x = self.linear1(x)
         x = self.relu(x)
         x = self.dropout(x)

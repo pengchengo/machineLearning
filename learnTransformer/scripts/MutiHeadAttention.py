@@ -27,11 +27,13 @@ class MutiHeadAttention(nn.Module):
     def split(self, x):
         batch_size, length, d_model = x.size()
         d_tensor = d_model // nhead
-        x = x.view(batch_size, length, nhead, d_tensor)
+        # [B, L, D] -> [B, H, L, D/H]
+        x = x.view(batch_size, length, nhead, d_tensor).transpose(1, 2).contiguous()
         return x
 
     def concat(self, x):
-        batch_size, length, nhead, d_tensor = x.size()
+        # [B, H, L, D/H] -> [B, L, D]
+        batch_size, nhead, length, d_tensor = x.size()
         d_model = nhead * d_tensor
         x = x.transpose(1, 2).contiguous().view(batch_size, length, d_model)
         return x

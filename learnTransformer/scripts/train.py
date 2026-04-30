@@ -67,6 +67,8 @@ def evaluate():
 
 def run():
     best_loss = float('inf')
+    save_dir = PROJECT_ROOT / "learnTransformer/saved"
+    save_dir.mkdir(parents=True, exist_ok=True)
     for epoch in range(total_epochs):
         start_time = time.time()
         train_loss = train()
@@ -77,7 +79,7 @@ def run():
         print(f"Epoch {epoch}, Train Loss: {train_loss}, Val Loss: {val_loss}")
         if val_loss < best_loss:
             best_loss = val_loss
-            torch.save(model.state_dict(), 'saved/model-{0}.pt'.format(best_loss))
+            torch.save(model.state_dict(), str(save_dir / f"model-{best_loss}.pt"))
         print(f"Val Loss: {val_loss}")
 
 if __name__ == "__main__":
