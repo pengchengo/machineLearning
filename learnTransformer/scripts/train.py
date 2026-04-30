@@ -47,7 +47,7 @@ def train():
         torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
         optimizer.step()
         epoch_loss += loss.item()
-        print(f"Epoch {epoch}, Loss: {loss.item()}")
+        print(f"Loss: {loss.item()}")
 
     return epoch_loss / len(train_loader)
         
